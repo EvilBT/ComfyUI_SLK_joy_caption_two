@@ -1,3 +1,5 @@
+# JoyCaptionAlpha Two for ComfyUI
+[English](./readme_us.md) | 中文
 
 ## Recent changes 
 * [2024-10-12] v0.0.1: 基本完成[JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two)到ComfyUI的实现
@@ -38,14 +40,17 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 
 支持两个版本：bnb-4bit是小显存的福音，我是使用这个版本的，原版的我没有测试过，可自行测试。程序会自动下载，可自行下载。
 
-2.1 [unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit](https://huggingface.co/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit)
+2.1 unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit
 
-国内可以从镜像网站下载[hf/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit](https://hf-mirror.com/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit)
+国外：[unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit](https://huggingface.co/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit)
+
+国内：[hf/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit](https://hf-mirror.com/unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit)
 
 把整个文件夹内的内容复制到 `models\LLM\Meta-Llama-3.1-8B-Instruct-bnb-4bit` 下
 
+国外:[meta-llama/Meta-Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B)
 
-国内:[meta-llama/Meta-Llama-3.1-8B](https://hf-mirror.com/meta-llama/Llama-3.1-8B)
+国内:[hf/meta-llama/Meta-Llama-3.1-8B](https://hf-mirror.com/meta-llama/Llama-3.1-8B)
 
 把下载后的整个文件夹的内容复制到`models\LLM\Meta-Llama-3.1-8B`下
 ![image](./examples/Llama3.1-8b.png)
