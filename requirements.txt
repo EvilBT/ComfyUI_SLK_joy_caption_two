@@ -1,0 +1,7 @@
+huggingface_hub==0.23.4
+transformers>=4.44.0
+numpy
+sentencepiece
+pillow>=10.1.0
+bitsandbytes>=0.44.1
+peft>=0.12.0

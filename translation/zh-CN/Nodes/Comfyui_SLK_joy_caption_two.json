@@ -1,0 +1,92 @@
+{
+    "Joy_caption_two_load": {
+        "title": "加载JoyCaptionTwo",
+        "widgets": {
+            "model": "模型"
+        },
+        "outputs": {
+            "JoyTwoPipeline": "JoyCaptionTwo"
+        }
+    },
+    "Joy_caption_two": {
+        "title": "JoyCaptionTwo",
+        "inputs": {
+            "joy_two_pipeline": "JoyCaptionTwo",
+            "image": "图像"
+        },
+        "widgets": {
+            "low_vram": "低显存",
+            "caption_type": "提示词类型",
+                "Descriptive": "描述性",
+                "Descriptive (Informal)": "描述性（非正式）",
+                "Training Prompt": "训练提示",
+                "MidJourney": "MidJourney",
+                "Booru tag list": "Booru 标签列表",
+                "Booru-like tag list": "类似 Booru 的标签列表",
+                "Art Critic": "艺术评论家",
+                "Product Listing": "产品清单",
+                "Social Media Post": "社交媒体帖子",
+            "caption_length": "提示词长度",
+                "any": "任意",
+                "very short": "非常短",
+                "short": "短",
+                "medium-length": "中等长度",
+                "long": "长",
+                "very long": "非常长"
+        },
+        "outputs": {
+            "STRING": "提示词"
+        }
+    },
+    "Joy_caption_two_advanced": {
+        "title": "高级JoyCaptionTwo",
+        "inputs": {
+            "joy_two_pipeline": "JoyCaptionTwo",
+            "image": "图像",
+            "extra_options": "附加选项"
+        },
+        "widgets": {
+            "name": "人名",
+            "custom_prompt": "自定义引导词",
+            "caption_type": "提示词类型",
+                "Descriptive": "描述性",
+                "Descriptive (Informal)": "描述性（非正式）",
+            "caption_length": "提示词长度",
+                "any": "任意",
+                "very short": "非常短",
+                "short": "短",
+                "medium-length": "中等长度",
+                "long": "长",
+                "very long": "非常长",
+            "low_vram": "低显存"
+        },
+        "outputs": {
+            "STRING": "提示词"
+        }
+    },
+    "Joy_extra_options": {
+        "title": "JoyCaption附加选项",
+        "widgets": {
+            "If there is a person/character in the image you must refer to them as {name}.": "如果图像中有人物/角色，你必须将其称为 {name}。",
+            "Do NOT include information about people/characters that cannot be changed (like ethnicity, gender, etc), but do still include changeable attributes (like hair style).": "不要包含关于人物/角色不可改变的信息（如种族、性别等），但仍然要包含可改变的属性（如发型）。",
+            "Include information about lighting.": "包含有关光照的信息。",
+            "Include information about camera angle.": "包含有关相机角度的信息。",
+            "Include information about whether there is a watermark or not.": "包含是否有水印的信息。",
+            "Include information about whether there are JPEG artifacts or not.": "包含是否有 JPEG 伪影的信息。",
+            "If it is a photo you MUST include information about what camera was likely used and details such as aperture, shutter speed, ISO, etc.": "如果它是照片，你必须包含有关可能使用的相机的信息，以及光圈、快门速度、ISO 等细节。",
+            "Do NOT include anything sexual; keep it PG.": "不要包含任何色情内容；保持 PG 级。",
+            "Do NOT mention the image's resolution.": "不要提及图像的分辨率。",
+            "You MUST include information about the subjective aesthetic quality of the image from low to very high.": "你必须包含关于图像主观审美质量的信息，从低到非常高。",
+            "Include information on the image's composition style, such as leading lines, rule of thirds, or symmetry.": "包含有关图像构图风格的信息，例如引导线、三分法则或对称性。",
+            "Do NOT mention any text that is in the image.": "不要提及图像中的任何文字。",
+            "Specify the depth of field and whether the background is in focus or blurred.": "指定景深以及背景是聚焦还是模糊。",
+            "If applicable, mention the likely use of artificial or natural lighting sources.": "如果适用，请提及可能使用的人工或自然光源。",
+            "Do NOT use any ambiguous language.": "不要使用任何模棱两可的语言。",
+            "Include whether the image is sfw, suggestive, or nsfw.": "包括图像是否是 sfw、暗示性或 nsfw。",
+            "ONLY describe the most important elements of the image.": "只描述图像中最重要的元素。"
+    },
+        "outputs": {
+            "Extra_Options": "附加选项"
+        }
+    }
+}
