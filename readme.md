@@ -33,7 +33,7 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 国内：[hf/google/siglip-so400m-patch14-384](https://hf-mirror.com/google/siglip-so400m-patch14-384)
 
 会自动下载，也可以手动下载整个仓库，并把siglip-so400m-patch14-384内的文件全部复制到`models/clip/siglip-so400m-patch14-384`
-
+![image](./examples/clip.png)
 #### 2. Llama3.1-8B 模型下载
 
 支持两个版本：bnb-4bit是小显存的福音，我是使用这个版本的，原版的我没有测试过，可自行测试。程序会自动下载，可自行下载。
@@ -44,21 +44,18 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 
 把整个文件夹内的内容复制到 `models\LLM\Meta-Llama-3.1-8B-Instruct-bnb-4bit` 下
 
-2.2 meta-llama/Meta-Llama-3.1-8B
-
-国外:[meta-llama/Meta-Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B)
 
 国内:[meta-llama/Meta-Llama-3.1-8B](https://hf-mirror.com/meta-llama/Llama-3.1-8B)
 
 把下载后的整个文件夹的内容复制到`models\LLM\Meta-Llama-3.1-8B`下
-
+![image](./examples/Llama3.1-8b.png)
 
 #### 3. Joy-Caption-alpha-two 模型下载（必须手动下载）
 
 把 [Joy-Caption-alpha-two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two/tree/main) 下的`cgrkzexw-599808`
 文件夹的所有内容下载复制到`models/Joy_caption_two` 下
-
-### 重装ComfyUI之后就可以添加使用了，具体可以参考下面的图片
+![image](./examples/joy_caption.png)
+### 重启ComfyUI之后就可以添加使用了，具体可以参考下面的图片
 ![image](./examples/workflow.png)
 ![image](./examples/workflow_flux.png)
 
