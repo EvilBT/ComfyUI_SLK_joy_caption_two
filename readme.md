@@ -58,7 +58,9 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 把 [Joy-Caption-alpha-two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two/tree/main) 下的`cgrkzexw-599808`
 文件夹的所有内容下载复制到`models/Joy_caption_two` 下
 
-### 重装ComfyUI之后就可以添加使用了，具体可以参考上面的图片
+### 重装ComfyUI之后就可以添加使用了，具体可以参考下面的图片
+![image](./examples/workflow.png)
+![image](./examples/workflow_flux.png)
 
 ### 其他
 
