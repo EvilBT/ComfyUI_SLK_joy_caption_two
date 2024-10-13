@@ -1,0 +1,13 @@
+[project]
+name = "ComfyUI_SLK_joy_caption_two"
+description = "JoyCaptionAlpha Two for ComfyUI"
+version = "0.0.2"
+license = { file = "LICENSE" }
+
+[project.urls]
+Repository = "https://github.com/EvilBT/ComfyUI_SLK_joy_caption_two.git"
+
+[tool.comfy]
+PublisherId = "EvilBT"
+DisplayName = "Joy Caption Two"
+Icon = ""
