@@ -1,7 +1,7 @@
 # JoyCaptionAlpha Two for ComfyUI
 English | [中文](./readme.md)
 ## Recent changes
-* [2024-10-14] v0.0.2: Fixed incorrect model selection guidance. The original framework is based on unsloth/Meta-Llama-3.1-8B-Instruct instead of Meta-Llama-3.1-8B.
+* [2024-10-14] v0.0.2: Added registration to Comfy Manager, allowing for installation of this node through it. Fixed the incorrect model selection guidance; the original framework was based on unsloth/Meta-Llama-3.1-8B-Instruct instead of Meta-Llama-3.1-8B.
 * [2024-10-12] v0.0.1: Basic implementation of [JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two) on ComfyUI is completed.
 
 
@@ -11,6 +11,12 @@ Referred to [Comfyui_CXH_joy_caption](https://github.com/StartHua/Comfyui_CXH_jo
 
 Refer to the example workflow in examples/workflow.png:
 ![image](./examples/workflow.png)
+
+### Installation
+
+You can install the node using Comfy Manager. Search for "JoyCaptionAlpha Two for ComfyUI" and install it.
+
+Alternatively, you can install it manually using the following steps. Please also refer to the "Downloading Related Models" section below, especially for the Joy-Caption-alpha-two model, which must be downloaded manually.
 
 ### Dependency Installation
 

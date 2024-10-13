@@ -1,8 +1,8 @@
 # JoyCaptionAlpha Two for ComfyUI
 [English](./readme_us.md) | 中文
 
-## Recent changes 
-* [2024-10-14] v0.0.2: 修复错误的模型选择引导，原框架是基于 `unsloth/Meta-Llama-3.1-8B-Instruct` 而不是 `Meta-Llama-3.1-8B`
+## Recent changes
+* [2024-10-14] v0.0.2: 添加注册到Comfy Manager, 可以通过它来安装该节点。修复错误的模型选择引导，原框架是基于 `unsloth/Meta-Llama-3.1-8B-Instruct` 而不是 `Meta-Llama-3.1-8B`
 * [2024-10-12] v0.0.1: 基本完成[JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two)到ComfyUI的实现
 
 
@@ -12,6 +12,10 @@
 
 参考工作流在examples/workflow.png中获取:
 ![image](./examples/workflow.png)
+
+### 安装
+
+使用 Comfy Manager, 节点安装搜索：`JoyCaptionAlpha Two for ComfyUI` 安装即可，或者使用下面手动安装方式也可以，另外注意查看下面的相关模型下载，特别是Joy-Caption-alpha-two 模型下载（必须手动下载）
 
 ### 依赖安装
 
