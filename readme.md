@@ -2,6 +2,7 @@
 [English](./readme_us.md) | 中文
 
 ## Recent changes 
+* [2024-10-14] v0.0.2: 修复错误的模型选择引导，原框架是基于 `unsloth/Meta-Llama-3.1-8B-Instruct` 而不是 `Meta-Llama-3.1-8B`
 * [2024-10-12] v0.0.1: 基本完成[JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two)到ComfyUI的实现
 
 
@@ -36,7 +37,7 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 
 会自动下载，也可以手动下载整个仓库，并把siglip-so400m-patch14-384内的文件全部复制到`models/clip/siglip-so400m-patch14-384`
 ![image](./examples/clip.png)
-#### 2. Llama3.1-8B 模型下载
+#### 2. Llama3.1-8B-Instruct 模型下载
 
 支持两个版本：bnb-4bit是小显存的福音，我是使用这个版本的，原版的我没有测试过，可自行测试。程序会自动下载，可自行下载。
 
@@ -48,11 +49,13 @@ pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 
 把整个文件夹内的内容复制到 `models\LLM\Meta-Llama-3.1-8B-Instruct-bnb-4bit` 下
 
-国外:[meta-llama/Meta-Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B)
+2.2 unsloth/Meta-Llama-3.1-8B-Instruct
 
-国内:[hf/meta-llama/Meta-Llama-3.1-8B](https://hf-mirror.com/meta-llama/Llama-3.1-8B)
+国外：[unsloth/Meta-Llama-3.1-8B-Instruct](https://huggingface.co/unsloth/Meta-Llama-3.1-8B-Instruct)
 
-把下载后的整个文件夹的内容复制到`models\LLM\Meta-Llama-3.1-8B`下
+国内：[hf/unsloth/Meta-Llama-3.1-8B-Instruct](https://hf-mirror.com/unsloth/Meta-Llama-3.1-8B-Instruct)
+
+把下载后的整个文件夹的内容复制到`models\LLM\Meta-Llama-3.1-8B-Instruct`下
 ![image](./examples/Llama3.1-8b.png)
 
 #### 3. Joy-Caption-alpha-two 模型下载（必须手动下载）

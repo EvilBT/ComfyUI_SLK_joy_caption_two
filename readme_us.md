@@ -1,6 +1,7 @@
 # JoyCaptionAlpha Two for ComfyUI
 English | [中文](./readme.md)
 ## Recent changes
+* [2024-10-14] v0.0.2: Fixed incorrect model selection guidance. The original framework is based on unsloth/Meta-Llama-3.1-8B-Instruct instead of Meta-Llama-3.1-8B.
 * [2024-10-12] v0.0.1: Basic implementation of [JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two) on ComfyUI is completed.
 
 
@@ -37,13 +38,13 @@ China: [hf/google/siglip-so400m-patch14-384](https://hf-mirror.com/google/siglip
 It will be downloaded automatically. You can also manually download the entire repository and copy all files inside siglip-so400m-patch14-384 to `models/clip/siglip-so400m-patch14-384`.
 ![image](./examples/clip.png)
 
-#### 2. Llama 3.1-8B Model Download
+#### 2. Llama 3.1-8B-Instruct Model Download
 
 Two versions are supported:
 
 * **unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit:** This version utilizes 4-bit quantization (bnb) and is ideal for users with limited VRAM. This is the version I personally use and recommend, especially for 8GB VRAM environments. 
 
-* **meta-llama/Meta-Llama-3.1-8B:** This is the standard, unquantized version of the model. I have not tested it extensively, but you are welcome to try it out.
+* **unsloth/Meta-Llama-3.1-8B-Instruct:** This is the standard, unquantized version of the model. I have not tested it extensively, but you are welcome to try it out.
 
 Both versions will be downloaded automatically by the program if they are not found, but you can also download them manually from the links below:
 
@@ -54,12 +55,12 @@ Both versions will be downloaded automatically by the program if they are not fo
 
 After downloading, copy the entire contents of the folder to `models\LLM\Meta-Llama-3.1-8B-Instruct-bnb-4bit`.
 
-**2.2 meta-llama/Meta-Llama-3.1-8B**
+**2.2 unsloth/Meta-Llama-3.1-8B-Instruct**
 
-* **International:** [meta-llama/Meta-Llama-3.1-8B](https://huggingface.co/meta-llama/Llama-3.1-8B)
-* **China:** [hf/meta-llama/Meta-Llama-3.1-8B](https://hf-mirror.com/meta-llama/Llama-3.1-8B)
+* **International:** [unsloth/Meta-Llama-3.1-8B-Instruct](https://huggingface.co/unsloth/Meta-Llama-3.1-8B-Instruct)
+* **China:** [hf/unsloth/Meta-Llama-3.1-8B-Instruct](https://hf-mirror.com/unsloth/Meta-Llama-3.1-8B-Instruct)
 
-After downloading, copy the entire contents of the folder to `models\LLM\Meta-Llama-3.1-8B`.
+After downloading, copy the entire contents of the folder to `models\LLM\Meta-Llama-3.1-8B-Instruct`.
 
 ![image](./examples/Llama3.1-8b.png)
 

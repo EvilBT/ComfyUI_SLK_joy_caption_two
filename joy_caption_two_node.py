@@ -1,4 +1,3 @@
-import gc
 import time
 
 import numpy as np
@@ -15,11 +14,11 @@ import comfy.model_management
 import folder_paths
 import torchvision.transforms.functional as TVF
 
-from comfy.model_management import get_torch_device, unload_all_models, get_free_memory
+from comfy.model_management import get_torch_device, get_free_memory
 
-from comfy.model_management import load_models_gpu, soft_empty_cache
+from comfy.model_management import load_models_gpu, text_encoder_dtype
 from comfy.model_patcher import ModelPatcher
-from .uitls import download_hg_model, modify_json_value
+from .uitls import download_hg_model, modify_json_value, clear_cache
 from .joy_config import joy_config
 
 DEVICE = get_torch_device()
@@ -30,9 +29,10 @@ def tensor2pil(t_image: torch.Tensor)  -> Image:
     return Image.fromarray(np.clip(255.0 * t_image.cpu().numpy().squeeze(), 0, 255).astype(np.uint8))
 
 class JoyClipVisionModel:
-    def __init__(self):
-        self.load_device = comfy.model_management.text_encoder_device()
-        self.offload_device = comfy.model_management.text_encoder_offload_device()
+    def __init__(self, load_device, offload_device):
+        self.load_device = load_device
+        self.offload_device = offload_device
+        self.type = text_encoder_dtype()
 
         # clip
         model_id = "google/siglip-so400m-patch14-384"
@@ -40,7 +40,8 @@ class JoyClipVisionModel:
 
         clip_model = AutoModel.from_pretrained(
             CLIP_PATH,
-            trust_remote_code=True
+            trust_remote_code=True,
+            torch_dtype=self.type
         )
 
         clip_model = clip_model.vision_model
@@ -118,16 +119,16 @@ class ImageAdapter(nn.Module):
 
 
 class JoyImageAdapter:
-    def __init__(self):
-        self.load_device = comfy.model_management.text_encoder_device()
-        self.offload_device = comfy.model_management.text_encoder_offload_device()
+    def __init__(self, load_device, offload_device):
+        self.load_device = load_device
+        self.offload_device = offload_device
 
         # Image Adapter
         adapter_path = os.path.join(BASE_MODEL_PATH, "image_adapter.pt")
 
         image_adapter = ImageAdapter(1152, 4096, False, False, 38,
                                      False)  # ImageAdapter(clip_model.config.hidden_size, 4096)
-        image_adapter.load_state_dict(torch.load(adapter_path, map_location="cpu", weights_only=True))
+        image_adapter.load_state_dict(torch.load(adapter_path, map_location=self.offload_device, weights_only=True))
         image_adapter.eval()
         self.image_adapter = image_adapter
 
@@ -135,18 +136,17 @@ class JoyImageAdapter:
                                     offload_device=self.offload_device)
 
     def embedded_image(self, hidden_states):
-        #print(f"{id(self)}之前device in JoyImageAdapter: {next(self.image_adapter.parameters()).device}")  # 打印模型参数的设备
         load_models_gpu([self.patcher], force_full_load=True, force_patch_weights=True)
-        #print(f"之后device in JoyImageAdapter: {next(self.image_adapter.parameters()).device}")  # 打印模型参数的设备
         embedded_images = self.image_adapter(hidden_states)
-        embedded_images.to("cuda")
+        embedded_images.to(self.load_device)
         return embedded_images
 
 class JoyLLM:
-    def __init__(self):
-        self.load_device = comfy.model_management.text_encoder_device()
-        self.offload_device = comfy.model_management.text_encoder_offload_device()
-        self.type = comfy.model_management.should_use_fp16()
+    def __init__(self, load_device, offload_device, model_id):
+        self.load_device = load_device
+        self.offload_device = offload_device
+        self.type = text_encoder_dtype()
+        self.model_id = model_id
 
         print("Loading tokenizer")
         tokenizer = AutoTokenizer.from_pretrained(os.path.join(BASE_MODEL_PATH, "text_model"), use_fast=True)
@@ -156,10 +156,10 @@ class JoyLLM:
         self.tokenizer = tokenizer
         self.text_model = None
 
-    def load_llm_model(self, model_id):
+    def load_llm_model(self):
         if self.text_model is None:
             print("Loading LLM")
-            LLM_PATH = download_hg_model(model_id, "LLM")
+            LLM_PATH = download_hg_model(self.model_id, "LLM")
             text_model_path = os.path.join(BASE_MODEL_PATH, "text_model")
             modify_json_value(os.path.join(text_model_path, "adapter_config.json"), "base_model_name_or_path",
                               LLM_PATH)
@@ -167,31 +167,29 @@ class JoyLLM:
             retries = 0
             while True:
                 free_vram = get_free_memory()/1024/1024
-                print(f"现在的显存{retries}:{free_vram}")
+                # print(f"现在的显存{retries}:{free_vram}")
                 if free_vram > 6400:
                     text_model = AutoModelForCausalLM.from_pretrained(text_model_path,
-                                                              device_map="auto",
+                                                              device_map=self.load_device,
                                                               local_files_only=True,
-                                                              trust_remote_code=True, torch_dtype=torch.bfloat16)
+                                                              trust_remote_code=True, torch_dtype=self.type)
                     text_model.eval()
                     self.text_model = text_model
                     break
                 else:
-                    gc.collect()
-                    unload_all_models()
-                    soft_empty_cache()
+                    clear_cache()
                     retries += 1
                     if retries > max_retries:
                         text_model = AutoModelForCausalLM.from_pretrained(text_model_path,
-                                                                          device_map="auto",
+                                                                          device_map=self.load_device,
                                                                           local_files_only=True,
                                                                           trust_remote_code=True,
-                                                                          torch_dtype=torch.bfloat16)
+                                                                          torch_dtype=self.type)
                         text_model.eval()
                         self.text_model = text_model
                         break
                     time.sleep(1 + retries / 2)
-            print(f"现在呢:{get_free_memory()/1024/1024}")
+            # print(f"现在呢:{get_free_memory()/1024/1024}")
         return self.text_model
 
     def clear_gpu(self, low_vram):
@@ -201,12 +199,13 @@ class JoyLLM:
         import gc
         gc.collect()
         if low_vram:
-            unload_all_models()
-            soft_empty_cache()
+            clear_cache()
 
 
 class JoyTwoPipeline:
-    def __init__(self):
+    def __init__(self, load_device, offload_device):
+        self.load_device = load_device
+        self.offload_device = offload_device
         self.clip_model: JoyClipVisionModel | None = None
         self.image_adapter: JoyImageAdapter | None = None
         self.llm: JoyLLM | None = None
@@ -220,21 +219,22 @@ class JoyTwoPipeline:
 
     def loadModels(self):
         # clip
-        self.clip_model = JoyClipVisionModel()
+        self.clip_model = JoyClipVisionModel(self.load_device, self.offload_device)
 
-        self.image_adapter = JoyImageAdapter()
+        self.image_adapter = JoyImageAdapter(self.load_device, self.offload_device)
 
-    def loadLLM(self):
-        self.llm = JoyLLM()
+    def loadLLM(self, model_id):
+        self.llm = JoyLLM(self.load_device, self.offload_device, model_id)
 
 
 class Joy_caption_two_load:
 
     def __init__(self):
         self.model = None
-        self.pipeline = JoyTwoPipeline()
+        self.load_device = comfy.model_management.text_encoder_device()
+        self.offload_device = comfy.model_management.text_encoder_offload_device()
+        self.pipeline = JoyTwoPipeline(self.load_device, self.offload_device)
         self.pipeline.parent = self
-        pass
 
     @classmethod
     def INPUT_TYPES(s):
@@ -323,17 +323,18 @@ class Joy_caption_two:
         image = image.resize((384, 384), Image.LANCZOS)
         pixel_values = TVF.pil_to_tensor(image).unsqueeze(0) / 255.0
         pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
-        pixel_values = pixel_values.to('cuda')
+        pixel_values = pixel_values.to(joy_two_pipeline.load_device)
 
         # Embed image
         # This results in Batch x Image Tokens x Features
-        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
+        device_type = str(joy_two_pipeline.load_device)
+        with torch.amp.autocast_mode.autocast(device_type, enabled=True):
             vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
             embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
 
         if low_vram:
-            pixel_values.to("cpu")
-            unload_all_models()
+            pixel_values.to(joy_two_pipeline.offload_device)
+            clear_cache()
 
         # Build the conversation
         convo = [
@@ -348,7 +349,7 @@ class Joy_caption_two:
         ]
 
         if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM()
+            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -371,23 +372,23 @@ class Joy_caption_two:
         preamble_len = eot_id_indices[1] - prompt_tokens.shape[0]  # Number of tokens before the prompt
 
 
-        text_model = joy_two_pipeline.llm.load_llm_model(joy_two_pipeline.model)
+        text_model = joy_two_pipeline.llm.load_llm_model()
         # Embed the tokens
-        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to('cuda'))
+        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to(joy_two_pipeline.load_device))
 
         # Construct the input
         input_embeds = torch.cat([
             convo_embeds[:, :preamble_len],  # Part before the prompt
             embedded_images.to(dtype=convo_embeds.dtype),  # Image
             convo_embeds[:, preamble_len:],  # The prompt and anything after it
-        ], dim=1).to('cuda')
+        ], dim=1).to(joy_two_pipeline.load_device)
 
         input_ids = torch.cat([
             convo_tokens[:preamble_len].unsqueeze(0),
             torch.zeros((1, embedded_images.shape[1]), dtype=torch.long),
             # Dummy tokens for the image (TODO: Should probably use a special token here so as not to confuse any generation algorithms that might be inspecting the input)
             convo_tokens[preamble_len:].unsqueeze(0),
-        ], dim=1).to('cuda')
+        ], dim=1).to(joy_two_pipeline.load_device)
         attention_mask = torch.ones_like(input_ids)
 
         # Debugging
@@ -485,17 +486,18 @@ class Joy_caption_two_advanced:
         image = image.resize((384, 384), Image.LANCZOS)
         pixel_values = TVF.pil_to_tensor(image).unsqueeze(0) / 255.0
         pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
-        pixel_values = pixel_values.to('cuda')
+        pixel_values = pixel_values.to(joy_two_pipeline.load_device)
 
         # Embed image
         # This results in Batch x Image Tokens x Features
-        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
+        device_type = str(joy_two_pipeline.load_device)
+        with torch.amp.autocast_mode.autocast(device_type, enabled=True):
             vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
             embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
 
         if low_vram:
-            pixel_values.to("cpu")
-            unload_all_models()
+            pixel_values.to(joy_two_pipeline.offload_device)
+            clear_cache()
 
         # Build the conversation
         convo = [
@@ -510,7 +512,7 @@ class Joy_caption_two_advanced:
         ]
 
         if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM()
+            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -533,23 +535,22 @@ class Joy_caption_two_advanced:
         preamble_len = eot_id_indices[1] - prompt_tokens.shape[0]  # Number of tokens before the prompt
 
 
-        text_model = joy_two_pipeline.llm.load_llm_model(joy_two_pipeline.model)
+        text_model = joy_two_pipeline.llm.load_llm_model()
         # Embed the tokens
-        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to('cuda'))
-        print(f"convo_embeds device: {convo_embeds.device}")  # 打印 convo_embeds 的设备
+        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to(joy_two_pipeline.load_device))
         # Construct the input
         input_embeds = torch.cat([
             convo_embeds[:, :preamble_len],  # Part before the prompt
             embedded_images.to(dtype=convo_embeds.dtype),  # Image
             convo_embeds[:, preamble_len:],  # The prompt and anything after it
-        ], dim=1).to('cuda')
+        ], dim=1).to(joy_two_pipeline.load_device)
 
         input_ids = torch.cat([
             convo_tokens[:preamble_len].unsqueeze(0),
             torch.zeros((1, embedded_images.shape[1]), dtype=torch.long),
             # Dummy tokens for the image (TODO: Should probably use a special token here so as not to confuse any generation algorithms that might be inspecting the input)
             convo_tokens[preamble_len:].unsqueeze(0),
-        ], dim=1).to('cuda')
+        ], dim=1).to(joy_two_pipeline.load_device)
         attention_mask = torch.ones_like(input_ids)
 
         # Debugging
