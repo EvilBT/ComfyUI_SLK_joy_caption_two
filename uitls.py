@@ -1,6 +1,9 @@
+import gc
 import json
 import os
 import folder_paths
+
+from comfy.model_management import unload_all_models, soft_empty_cache
 
 # 下载hg 模型到本地
 def download_hg_model(model_id:str, exDir:str=''):
@@ -11,6 +14,11 @@ def download_hg_model(model_id:str, exDir:str=''):
         from huggingface_hub import snapshot_download
         snapshot_download(repo_id=model_id, local_dir=model_checkpoint, local_dir_use_symlinks=False)
     return model_checkpoint
+
+def clear_cache():
+    gc.collect()
+    unload_all_models()
+    soft_empty_cache()
 
 def modify_json_value(file_path, key_to_modify, new_value):
   """
