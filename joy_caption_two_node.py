@@ -327,8 +327,7 @@ class Joy_caption_two:
 
         # Embed image
         # This results in Batch x Image Tokens x Features
-        device_type = str(joy_two_pipeline.load_device)
-        with torch.amp.autocast_mode.autocast(device_type, enabled=True):
+        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
             vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
             embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
 
@@ -490,8 +489,7 @@ class Joy_caption_two_advanced:
 
         # Embed image
         # This results in Batch x Image Tokens x Features
-        device_type = str(joy_two_pipeline.load_device)
-        with torch.amp.autocast_mode.autocast(device_type, enabled=True):
+        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
             vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
             embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
 
