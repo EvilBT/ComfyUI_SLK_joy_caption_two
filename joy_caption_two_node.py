@@ -11,6 +11,7 @@ from PIL import Image
 import os
 
 import comfy.model_management
+import comfy.utils
 import folder_paths
 import torchvision.transforms.functional as TVF
 
@@ -571,6 +572,390 @@ class Joy_caption_two_advanced:
         joy_two_pipeline.llm.clear_gpu(low_vram)
 
         return (caption.strip(), )
+
+class Batch_joy_caption_two:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        caption_lengths = list(joy_config["CAPTION_LENGTH"])
+        caption_types = list(joy_config["CAPTION_TYPE_MAP"].keys())
+        return {
+            "required": {
+                "joy_two_pipeline": ("JoyTwoPipeline",),
+                "input_dir": ("STRING", {"default": ""}),
+                "output_dir": ("STRING", {"default": ""}),
+                "caption_type": (caption_types, {}),
+                "caption_length": (caption_lengths, {"default": "long"}),
+                "low_vram": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    CATEGORY = "SLK/LLM"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "generate"
+
+    def generate_caption(self, joy_two_pipeline: JoyTwoPipeline, image, prompt, low_vram=True):
+        torch.cuda.empty_cache()
+        pixel_values = TVF.pil_to_tensor(image).unsqueeze(0) / 255.0
+        pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
+        pixel_values = pixel_values.to(joy_two_pipeline.load_device)
+
+        # Embed image
+        # This results in Batch x Image Tokens x Features
+        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
+            vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
+            embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
+
+        if low_vram:
+            pixel_values.to(joy_two_pipeline.offload_device)
+            clear_cache()
+
+        # Build the conversation
+        convo = [
+            {
+                "role": "system",
+                "content": "You are a helpful image captioner.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ]
+
+        if joy_two_pipeline.llm is None:
+            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+
+        tokenizer = joy_two_pipeline.llm.tokenizer
+        # Format the conversation
+        convo_string = tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=True)
+        assert isinstance(convo_string, str)
+
+        # Tokenize the conversation
+        # prompt_str is tokenized separately so we can do the calculations below
+        convo_tokens = tokenizer.encode(convo_string, return_tensors="pt", add_special_tokens=False, truncation=False)
+        prompt_tokens = tokenizer.encode(prompt, return_tensors="pt", add_special_tokens=False, truncation=False)
+        assert isinstance(convo_tokens, torch.Tensor) and isinstance(prompt_tokens, torch.Tensor)
+        convo_tokens = convo_tokens.squeeze(0)  # Squeeze just to make the following easier
+        prompt_tokens = prompt_tokens.squeeze(0)
+
+        # Calculate where to inject the image
+        eot_id_indices = (convo_tokens == tokenizer.convert_tokens_to_ids("<|eot_id|>")).nonzero(as_tuple=True)[
+            0].tolist()
+        assert len(eot_id_indices) == 2, f"Expected 2 <|eot_id|> tokens, got {len(eot_id_indices)}"
+
+        preamble_len = eot_id_indices[1] - prompt_tokens.shape[0]  # Number of tokens before the prompt
+
+        text_model = joy_two_pipeline.llm.load_llm_model()
+        # Embed the tokens
+        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to(joy_two_pipeline.load_device))
+        # Construct the input
+        input_embeds = torch.cat([
+            convo_embeds[:, :preamble_len],  # Part before the prompt
+            embedded_images.to(dtype=convo_embeds.dtype),  # Image
+            convo_embeds[:, preamble_len:],  # The prompt and anything after it
+        ], dim=1).to(joy_two_pipeline.load_device)
+
+        input_ids = torch.cat([
+            convo_tokens[:preamble_len].unsqueeze(0),
+            torch.zeros((1, embedded_images.shape[1]), dtype=torch.long),
+            # Dummy tokens for the image (TODO: Should probably use a special token here so as not to confuse any generation algorithms that might be inspecting the input)
+            convo_tokens[preamble_len:].unsqueeze(0),
+        ], dim=1).to(joy_two_pipeline.load_device)
+        attention_mask = torch.ones_like(input_ids)
+
+        # Debugging
+        # print(f"Input to model: {repr(tokenizer.decode(input_ids[0]))}")
+
+        # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=False, suppress_tokens=None)
+        # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=True, top_k=10, temperature=0.5, suppress_tokens=None)
+        generate_ids = text_model.generate(input_ids, inputs_embeds=input_embeds, attention_mask=attention_mask,
+                                           max_new_tokens=300, do_sample=True,
+                                           suppress_tokens=None)  # Uses the default which is temp=0.6, top_p=0.9
+
+        # Trim off the prompt
+        generate_ids = generate_ids[:, input_ids.shape[1]:]
+        if generate_ids[0][-1] == tokenizer.eos_token_id or generate_ids[0][-1] == tokenizer.convert_tokens_to_ids(
+                "<|eot_id|>"):
+            generate_ids = generate_ids[:, :-1]
+
+        caption = tokenizer.batch_decode(generate_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)[0]
+
+        return caption.strip()
+
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, caption_type, caption_length, low_vram):
+        torch.cuda.empty_cache()
+
+        if joy_two_pipeline.clip_model == None:
+            joy_two_pipeline.parent.loadModels()
+
+        # 'any' means no length specified
+        length = None if caption_length == "any" else caption_length
+
+        if isinstance(length, str):
+            try:
+                length = int(length)
+            except ValueError:
+                pass
+
+        # Build prompt
+        if length is None:
+            map_idx = 0
+        elif isinstance(length, int):
+            map_idx = 1
+        elif isinstance(length, str):
+            map_idx = 2
+        else:
+            raise ValueError(f"Invalid caption length: {length}")
+
+        caption_type_map = joy_config["CAPTION_TYPE_MAP"]
+        prompt_str = list(caption_type_map[caption_type])[map_idx]
+
+        # Add name, length, word_count
+        prompt_str = prompt_str.format(length=caption_length, word_count=caption_length)
+
+        # For debugging
+        print(f"Prompt: {prompt_str}")
+
+        if output_dir is None or output_dir.strip() == "":
+            output_dir = input_dir
+
+        finished_image_count = 0
+        error_image_count = 0
+        image_count = 0
+
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith((".jpg", ".png", ".jpeg", ".bmp", ".webp")):
+                image_count += 1
+
+        pbar = comfy.utils.ProgressBar(image_count)
+        step = 0
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith((".jpg", ".png", ".jpeg", ".bmp", ".webp")):
+                image_path = os.path.join(input_dir, filename)
+                text_path = os.path.join(output_dir, os.path.splitext(filename)[0] + '.txt')
+
+                try:
+                    print(f"打开{image_path}")
+                    with Image.open(image_path) as img:
+                        pbar.update_absolute(step, image_count)
+                        image = img.resize((384, 384), Image.LANCZOS)
+                        caption = self.generate_caption(joy_two_pipeline, image, prompt_str)
+                        with open(text_path, 'w', encoding='utf-8') as f:
+                            f.write(caption)
+                    finished_image_count += 1
+                except Exception as e:
+                    print(f"Error processing {filename} :{e}")
+                    error_image_count += 1
+                step += 1
+
+
+        # Preprocess image
+        # NOTE: I found the default processor for so400M to have worse results than just using PIL directly
+        # image = clip_processor(images=input_image, return_tensors='pt').pixel_values
+
+        joy_two_pipeline.llm.clear_gpu(low_vram)
+
+        return (f"result: finished count: {finished_image_count}, error count: {error_image_count}", )
+
+class Batch_joy_caption_two_advanced:
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def INPUT_TYPES(s):
+        caption_lengths = list(joy_config["CAPTION_LENGTH"])
+        caption_types = list(joy_config["CAPTION_TYPE_MAP"].keys())
+        return {
+            "required": {
+                "joy_two_pipeline": ("JoyTwoPipeline",),
+                "input_dir": ("STRING", {"default": ""}),
+                "output_dir": ("STRING", {"default": ""}),
+                "extra_options": ("Extra_Options", ),
+                "caption_type": (caption_types, {}),
+                "caption_length": (caption_lengths, {"default": "long"}),
+                "name": ("STRING", {"default": ""}),
+                "custom_prompt": ("STRING", {"default": ""}),
+                "low_vram": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    CATEGORY = "SLK/LLM"
+    RETURN_TYPES = ("STRING",)
+    FUNCTION = "generate"
+
+    def generate_caption(self, joy_two_pipeline: JoyTwoPipeline, image, prompt, low_vram=True):
+        torch.cuda.empty_cache()
+        pixel_values = TVF.pil_to_tensor(image).unsqueeze(0) / 255.0
+        pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
+        pixel_values = pixel_values.to(joy_two_pipeline.load_device)
+
+        # Embed image
+        # This results in Batch x Image Tokens x Features
+        with torch.amp.autocast_mode.autocast('cuda', enabled=True):
+            vision_outputs = joy_two_pipeline.clip_model.encode_image(pixel_values)
+            embedded_images = joy_two_pipeline.image_adapter.embedded_image(vision_outputs.hidden_states)
+
+        if low_vram:
+            pixel_values.to(joy_two_pipeline.offload_device)
+            clear_cache()
+
+        # Build the conversation
+        convo = [
+            {
+                "role": "system",
+                "content": "You are a helpful image captioner.",
+            },
+            {
+                "role": "user",
+                "content": prompt,
+            },
+        ]
+
+        if joy_two_pipeline.llm is None:
+            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+
+        tokenizer = joy_two_pipeline.llm.tokenizer
+        # Format the conversation
+        convo_string = tokenizer.apply_chat_template(convo, tokenize=False, add_generation_prompt=True)
+        assert isinstance(convo_string, str)
+
+        # Tokenize the conversation
+        # prompt_str is tokenized separately so we can do the calculations below
+        convo_tokens = tokenizer.encode(convo_string, return_tensors="pt", add_special_tokens=False, truncation=False)
+        prompt_tokens = tokenizer.encode(prompt, return_tensors="pt", add_special_tokens=False, truncation=False)
+        assert isinstance(convo_tokens, torch.Tensor) and isinstance(prompt_tokens, torch.Tensor)
+        convo_tokens = convo_tokens.squeeze(0)  # Squeeze just to make the following easier
+        prompt_tokens = prompt_tokens.squeeze(0)
+
+        # Calculate where to inject the image
+        eot_id_indices = (convo_tokens == tokenizer.convert_tokens_to_ids("<|eot_id|>")).nonzero(as_tuple=True)[
+            0].tolist()
+        assert len(eot_id_indices) == 2, f"Expected 2 <|eot_id|> tokens, got {len(eot_id_indices)}"
+
+        preamble_len = eot_id_indices[1] - prompt_tokens.shape[0]  # Number of tokens before the prompt
+
+        text_model = joy_two_pipeline.llm.load_llm_model()
+        # Embed the tokens
+        convo_embeds = text_model.model.embed_tokens(convo_tokens.unsqueeze(0).to(joy_two_pipeline.load_device))
+        # Construct the input
+        input_embeds = torch.cat([
+            convo_embeds[:, :preamble_len],  # Part before the prompt
+            embedded_images.to(dtype=convo_embeds.dtype),  # Image
+            convo_embeds[:, preamble_len:],  # The prompt and anything after it
+        ], dim=1).to(joy_two_pipeline.load_device)
+
+        input_ids = torch.cat([
+            convo_tokens[:preamble_len].unsqueeze(0),
+            torch.zeros((1, embedded_images.shape[1]), dtype=torch.long),
+            # Dummy tokens for the image (TODO: Should probably use a special token here so as not to confuse any generation algorithms that might be inspecting the input)
+            convo_tokens[preamble_len:].unsqueeze(0),
+        ], dim=1).to(joy_two_pipeline.load_device)
+        attention_mask = torch.ones_like(input_ids)
+
+        # Debugging
+        # print(f"Input to model: {repr(tokenizer.decode(input_ids[0]))}")
+
+        # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=False, suppress_tokens=None)
+        # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=True, top_k=10, temperature=0.5, suppress_tokens=None)
+        generate_ids = text_model.generate(input_ids, inputs_embeds=input_embeds, attention_mask=attention_mask,
+                                           max_new_tokens=300, do_sample=True,
+                                           suppress_tokens=None)  # Uses the default which is temp=0.6, top_p=0.9
+
+        # Trim off the prompt
+        generate_ids = generate_ids[:, input_ids.shape[1]:]
+        if generate_ids[0][-1] == tokenizer.eos_token_id or generate_ids[0][-1] == tokenizer.convert_tokens_to_ids(
+                "<|eot_id|>"):
+            generate_ids = generate_ids[:, :-1]
+
+        caption = tokenizer.batch_decode(generate_ids, skip_special_tokens=False, clean_up_tokenization_spaces=False)[0]
+
+        return caption.strip()
+
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, extra_options, caption_type, caption_length, name, custom_prompt, low_vram):
+        torch.cuda.empty_cache()
+
+        if joy_two_pipeline.clip_model == None:
+            joy_two_pipeline.parent.loadModels()
+
+        # 'any' means no length specified
+        length = None if caption_length == "any" else caption_length
+
+        if isinstance(length, str):
+            try:
+                length = int(length)
+            except ValueError:
+                pass
+
+        # Build prompt
+        if length is None:
+            map_idx = 0
+        elif isinstance(length, int):
+            map_idx = 1
+        elif isinstance(length, str):
+            map_idx = 2
+        else:
+            raise ValueError(f"Invalid caption length: {length}")
+
+        caption_type_map = joy_config["CAPTION_TYPE_MAP"]
+        prompt_str = list(caption_type_map[caption_type])[map_idx]
+
+        # Add extra options
+        if len(extra_options) > 0:
+            prompt_str += " " + " ".join(extra_options)
+
+        # Add name, length, word_count
+        prompt_str = prompt_str.format(name=name, length=caption_length, word_count=caption_length)
+
+        if custom_prompt.strip() != "":
+            prompt_str = custom_prompt.strip()
+
+        # For debugging
+        print(f"Prompt: {prompt_str}")
+
+        if output_dir is None or output_dir.strip() == "":
+            output_dir = input_dir
+
+        finished_image_count = 0
+        error_image_count = 0
+        image_count = 0
+
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith((".jpg", ".png", ".jpeg", ".bmp", ".webp")):
+                image_count += 1
+
+        pbar = comfy.utils.ProgressBar(image_count)
+        step = 0
+        for filename in os.listdir(input_dir):
+            if filename.lower().endswith((".jpg", ".png", ".jpeg", ".bmp", ".webp")):
+                image_path = os.path.join(input_dir, filename)
+                text_path = os.path.join(output_dir, os.path.splitext(filename)[0] + '.txt')
+
+                try:
+                    print(f"打开{image_path}")
+                    with Image.open(image_path) as img:
+                        pbar.update_absolute(step, image_count)
+                        image = img.resize((384, 384), Image.LANCZOS)
+                        caption = self.generate_caption(joy_two_pipeline, image, prompt_str)
+                        with open(text_path, 'w', encoding='utf-8') as f:
+                            f.write(caption)
+                    finished_image_count += 1
+                except Exception as e:
+                    print(f"Error processing {filename} :{e}")
+                    error_image_count += 1
+                step += 1
+
+
+        # Preprocess image
+        # NOTE: I found the default processor for so400M to have worse results than just using PIL directly
+        # image = clip_processor(images=input_image, return_tensors='pt').pixel_values
+
+        joy_two_pipeline.llm.clear_gpu(low_vram)
+
+        return (f"result: finished count: {finished_image_count}, error count: {error_image_count}", )
 
 class Joy_extra_options:
     def __init__(self):

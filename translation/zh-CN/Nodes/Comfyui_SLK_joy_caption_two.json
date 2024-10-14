@@ -64,6 +64,66 @@
             "STRING": "提示词"
         }
     },
+    "Batch_joy_caption_two": {
+        "title": "批量JoyCaptionTwo",
+        "inputs": {
+            "joy_two_pipeline": "JoyCaptionTwo",
+            "image": "图像"
+        },
+        "widgets": {
+            "input_dir": "图片文件夹路径",
+            "output_dir": "字幕保存路径",
+            "low_vram": "低显存",
+            "caption_type": "提示词类型",
+                "Descriptive": "描述性",
+                "Descriptive (Informal)": "描述性（非正式）",
+                "Training Prompt": "训练提示",
+                "MidJourney": "MidJourney",
+                "Booru tag list": "Booru 标签列表",
+                "Booru-like tag list": "类似 Booru 的标签列表",
+                "Art Critic": "艺术评论家",
+                "Product Listing": "产品清单",
+                "Social Media Post": "社交媒体帖子",
+            "caption_length": "提示词长度",
+                "any": "任意",
+                "very short": "非常短",
+                "short": "短",
+                "medium-length": "中等长度",
+                "long": "长",
+                "very long": "非常长"
+        },
+        "outputs": {
+            "STRING": "处理结果"
+        }
+    },
+    "Batch_joy_caption_two_advanced": {
+        "title": "高级批量JoyCaptionTwo",
+        "inputs": {
+            "joy_two_pipeline": "JoyCaptionTwo",
+            "image": "图像",
+            "extra_options": "附加选项"
+        },
+        "widgets": {
+            "input_dir": "图片文件夹路径",
+            "output_dir": "字幕保存路径",
+            "name": "人名",
+            "custom_prompt": "自定义引导词",
+            "caption_type": "提示词类型",
+                "Descriptive": "描述性",
+                "Descriptive (Informal)": "描述性（非正式）",
+            "caption_length": "提示词长度",
+                "any": "任意",
+                "very short": "非常短",
+                "short": "短",
+                "medium-length": "中等长度",
+                "long": "长",
+                "very long": "非常长",
+            "low_vram": "低显存"
+        },
+        "outputs": {
+            "STRING": "处理结果"
+        }
+    },
     "Joy_extra_options": {
         "title": "JoyCaption附加选项",
         "widgets": {
