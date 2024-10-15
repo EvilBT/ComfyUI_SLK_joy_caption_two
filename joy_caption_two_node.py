@@ -431,6 +431,8 @@ class Joy_caption_two_advanced:
                 "name": ("STRING", {"default": ""}),
                 "custom_prompt": ("STRING", {"default": ""}),
                 "low_vram": ("BOOLEAN", {"default": False}),
+                "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "temperature": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -438,7 +440,7 @@ class Joy_caption_two_advanced:
     RETURN_TYPES = ("STRING",)
     FUNCTION = "generate"
 
-    def generate(self, joy_two_pipeline: JoyTwoPipeline, image, extra_options, caption_type, caption_length, name, custom_prompt, low_vram):
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, image, extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature):
         torch.cuda.empty_cache()
 
         if joy_two_pipeline.clip_model == None:
@@ -559,6 +561,7 @@ class Joy_caption_two_advanced:
         # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=True, top_k=10, temperature=0.5, suppress_tokens=None)
         generate_ids = text_model.generate(input_ids, inputs_embeds=input_embeds, attention_mask=attention_mask,
                                            max_new_tokens=300, do_sample=True,
+                                           top_p=top_p, temperature=temperature,
                                            suppress_tokens=None)  # Uses the default which is temp=0.6, top_p=0.9
 
         # Trim off the prompt
@@ -782,6 +785,8 @@ class Batch_joy_caption_two_advanced:
                 "name": ("STRING", {"default": ""}),
                 "custom_prompt": ("STRING", {"default": ""}),
                 "low_vram": ("BOOLEAN", {"default": False}),
+                "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "temperature": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.01}),
             }
         }
 
@@ -789,7 +794,7 @@ class Batch_joy_caption_two_advanced:
     RETURN_TYPES = ("STRING",)
     FUNCTION = "generate"
 
-    def generate_caption(self, joy_two_pipeline: JoyTwoPipeline, image, prompt, low_vram=True):
+    def generate_caption(self, joy_two_pipeline: JoyTwoPipeline, image, prompt, top_p=0.9, temperature=0.6, low_vram=True):
         torch.cuda.empty_cache()
         pixel_values = TVF.pil_to_tensor(image).unsqueeze(0) / 255.0
         pixel_values = TVF.normalize(pixel_values, [0.5], [0.5])
@@ -865,6 +870,7 @@ class Batch_joy_caption_two_advanced:
         # generate_ids = text_model.generate(input_ids, inputs_embeds=inputs_embeds, attention_mask=attention_mask, max_new_tokens=300, do_sample=True, top_k=10, temperature=0.5, suppress_tokens=None)
         generate_ids = text_model.generate(input_ids, inputs_embeds=input_embeds, attention_mask=attention_mask,
                                            max_new_tokens=300, do_sample=True,
+                                           top_p=top_p, temperature=temperature,
                                            suppress_tokens=None)  # Uses the default which is temp=0.6, top_p=0.9
 
         # Trim off the prompt
@@ -877,7 +883,7 @@ class Batch_joy_caption_two_advanced:
 
         return caption.strip()
 
-    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, extra_options, caption_type, caption_length, name, custom_prompt, low_vram):
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature):
         torch.cuda.empty_cache()
 
         if joy_two_pipeline.clip_model == None:
@@ -943,7 +949,7 @@ class Batch_joy_caption_two_advanced:
                             img = img.convert('RGB')
                         pbar.update_absolute(step, image_count)
                         image = img.resize((384, 384), Image.LANCZOS)
-                        caption = self.generate_caption(joy_two_pipeline, image, prompt_str)
+                        caption = self.generate_caption(joy_two_pipeline, image, prompt_str, top_p, temperature)
                         with open(text_path, 'w', encoding='utf-8') as f:
                             f.write(caption)
                     finished_image_count += 1

@@ -58,7 +58,9 @@
                 "medium-length": "中等长度",
                 "long": "长",
                 "very long": "非常长",
-            "low_vram": "低显存"
+            "low_vram": "低显存",
+            "top_p": "概率筛选(top_p)",
+            "temperature": "创造力温度(temperature)"
         },
         "outputs": {
             "STRING": "提示词"
@@ -118,7 +120,9 @@
                 "medium-length": "中等长度",
                 "long": "长",
                 "very long": "非常长",
-            "low_vram": "低显存"
+            "low_vram": "低显存",
+            "top_p": "概率筛选(top_p)",
+            "temperature": "创造力温度(temperature)"
         },
         "outputs": {
             "STRING": "处理结果"

@@ -1,6 +1,7 @@
 # JoyCaptionAlpha Two for ComfyUI
 English | [中文](./readme.md)
 ## Recent changes
+* [2024-10-16] v0.0.6: Added `top_p` and `temperature` parameters to the advanced mode for greater control. Expanded the selection of large language models. I tested [John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4](https://huggingface.co/John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4) and found the results quite good; you can also try it out. Additionally, the original [Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2](https://huggingface.co/Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2) model has been added as an option.
 * [2024-10-15] v0.0.5: Fix the bug when processing images with an alpha channel (RGBA) in batch.
 * [2024-10-15] v0.0.4: Added batch processing nodes: When the output directory is empty, it will be saved in the image folder.  You can find the example workflow in the examples directory.
 * [2024-10-15] v0.0.3: Fixed an issue where specifying 'cuda:0' would partially fail, now defaults to 'cuda'
@@ -12,9 +13,8 @@ English | [中文](./readme.md)
 
 Referred to [Comfyui_CXH_joy_caption](https://github.com/StartHua/Comfyui_CXH_joy_caption) and [JoyCaptionAlpha Two](https://huggingface.co/spaces/fancyfeast/joy-caption-alpha-two).
 
-Refer to the example workflow in examples/workflow.png:
-![image](./examples/workflow.png)
-![image](./examples/batch_workflow.png)
+Refer to the example workflow in examples/workflows.png:
+![image](./examples/workflows.png)
 
 ### Installation
 
@@ -80,8 +80,7 @@ Download and copy all the contents of the `cgrkzexw-599808` folder under [Joy-Ca
 ![image](./examples/joy_caption.png)
 
 ### After restarting ComfyUI, you can add and use it. Refer to the following images for details:
-![image](./examples/workflow.png)
-![image](./examples/workflow_flux.png)
+![image](./examples/workflows.png)
 
 ### Others
 
