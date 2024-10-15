@@ -740,6 +740,8 @@ class Batch_joy_caption_two:
                 try:
                     print(f"打开{image_path}")
                     with Image.open(image_path) as img:
+                        if img.mode == 'RGBA':
+                            img = img.convert('RGB')
                         pbar.update_absolute(step, image_count)
                         image = img.resize((384, 384), Image.LANCZOS)
                         caption = self.generate_caption(joy_two_pipeline, image, prompt_str)
@@ -937,6 +939,8 @@ class Batch_joy_caption_two_advanced:
                 try:
                     print(f"打开{image_path}")
                     with Image.open(image_path) as img:
+                        if img.mode == 'RGBA':
+                            img = img.convert('RGB')
                         pbar.update_absolute(step, image_count)
                         image = img.resize((384, 384), Image.LANCZOS)
                         caption = self.generate_caption(joy_two_pipeline, image, prompt_str)

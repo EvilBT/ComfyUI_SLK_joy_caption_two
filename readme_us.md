@@ -1,6 +1,7 @@
 # JoyCaptionAlpha Two for ComfyUI
 English | [中文](./readme.md)
 ## Recent changes
+* [2024-10-15] v0.0.5: Fix the bug when processing images with an alpha channel (RGBA) in batch.
 * [2024-10-15] v0.0.4: Added batch processing nodes: When the output directory is empty, it will be saved in the image folder.  You can find the example workflow in the examples directory.
 * [2024-10-15] v0.0.3: Fixed an issue where specifying 'cuda:0' would partially fail, now defaults to 'cuda'
 * [2024-10-14] v0.0.2: Added registration to Comfy Manager, allowing for installation of this node through it. Fixed the incorrect model selection guidance; the original framework was based on unsloth/Meta-Llama-3.1-8B-Instruct instead of Meta-Llama-3.1-8B.
