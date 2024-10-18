@@ -1,7 +1,10 @@
 # JoyCaptionAlpha Two for ComfyUI
 [English](./readme_us.md) | 中文
 
+Joy Caption 原作者在这：https://github.com/fpgaminer/joycaption ，非常感谢他的开源！
+
 ## Recent changes
+* [2024-10-16] v0.0.7: 统一模型加载精度，修复模型第二次无法切换的BUG，高级批量字幕增加重命名开关。
 * [2024-10-16] v0.0.6: 高级模式增加top_p与temperature，给予更多的选择，添加更多的大模型选择，我试了一下 [John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4](https://huggingface.co/John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4)
 效果不错，你们也可以尝试使用，另外也添加了原版的模型 [Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2](https://huggingface.co/Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2)，可以自行选择
 * [2024-10-15] v0.0.5: 修复批处理时图片有透明通道 RGBA 时的BUG

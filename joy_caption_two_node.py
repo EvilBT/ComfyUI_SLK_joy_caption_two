@@ -1,3 +1,4 @@
+import shutil
 import time
 
 import numpy as np
@@ -130,6 +131,8 @@ class JoyImageAdapter:
         image_adapter = ImageAdapter(1152, 4096, False, False, 38,
                                      False)  # ImageAdapter(clip_model.config.hidden_size, 4096)
         image_adapter.load_state_dict(torch.load(adapter_path, map_location=self.offload_device, weights_only=True))
+        img_dtype = text_encoder_dtype()
+        image_adapter = image_adapter.to(img_dtype)
         image_adapter.eval()
         self.image_adapter = image_adapter
 
@@ -148,6 +151,7 @@ class JoyLLM:
         self.offload_device = offload_device
         self.type = text_encoder_dtype()
         self.model_id = model_id
+        self.current_model_id = None
 
         print("Loading tokenizer")
         tokenizer = AutoTokenizer.from_pretrained(os.path.join(BASE_MODEL_PATH, "text_model"), use_fast=True)
@@ -158,8 +162,8 @@ class JoyLLM:
         self.text_model = None
 
     def load_llm_model(self):
-        if self.text_model is None:
-            print("Loading LLM")
+        if self.text_model is None or self.current_model_id != self.model_id:
+            print(f"Loading LLM: {self.model_id}")
             LLM_PATH = download_hg_model(self.model_id, "LLM")
             text_model_path = os.path.join(BASE_MODEL_PATH, "text_model")
             modify_json_value(os.path.join(text_model_path, "adapter_config.json"), "base_model_name_or_path",
@@ -191,11 +195,13 @@ class JoyLLM:
                         break
                     time.sleep(1 + retries / 2)
             # print(f"现在呢:{get_free_memory()/1024/1024}")
+            self.current_model_id = self.model_id
         return self.text_model
 
     def clear_gpu(self, low_vram):
         del self.text_model
         self.text_model = None
+        self.current_model_id = None
         torch.cuda.empty_cache()
         import gc
         gc.collect()
@@ -225,7 +231,10 @@ class JoyTwoPipeline:
         self.image_adapter = JoyImageAdapter(self.load_device, self.offload_device)
 
     def loadLLM(self, model_id):
-        self.llm = JoyLLM(self.load_device, self.offload_device, model_id)
+        if self.llm is None:
+            self.llm = JoyLLM(self.load_device, self.offload_device, model_id)
+        else:
+            self.llm.model_id = model_id
 
 
 class Joy_caption_two_load:
@@ -348,8 +357,7 @@ class Joy_caption_two:
             },
         ]
 
-        if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+        joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -512,8 +520,7 @@ class Joy_caption_two_advanced:
             },
         ]
 
-        if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+        joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -628,8 +635,7 @@ class Batch_joy_caption_two:
             },
         ]
 
-        if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+        joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -779,6 +785,9 @@ class Batch_joy_caption_two_advanced:
                 "joy_two_pipeline": ("JoyTwoPipeline",),
                 "input_dir": ("STRING", {"default": ""}),
                 "output_dir": ("STRING", {"default": ""}),
+                "rename": ("BOOLEAN", {"default": False}),
+                "prefix_name": ("STRING", {"default": ""}),
+                "start_index": ("INT", {"default": 1, "min": 0, "max": 9999999, "step": 1}),
                 "extra_options": ("Extra_Options", ),
                 "caption_type": (caption_types, {}),
                 "caption_length": (caption_lengths, {"default": "long"}),
@@ -822,8 +831,7 @@ class Batch_joy_caption_two_advanced:
             },
         ]
 
-        if joy_two_pipeline.llm is None:
-            joy_two_pipeline.loadLLM(joy_two_pipeline.model)
+        joy_two_pipeline.loadLLM(joy_two_pipeline.model)
 
         tokenizer = joy_two_pipeline.llm.tokenizer
         # Format the conversation
@@ -883,7 +891,7 @@ class Batch_joy_caption_two_advanced:
 
         return caption.strip()
 
-    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature):
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, rename, prefix_name, start_index, extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature):
         torch.cuda.empty_cache()
 
         if joy_two_pipeline.clip_model == None:
@@ -946,10 +954,17 @@ class Batch_joy_caption_two_advanced:
                     print(f"打开{image_path}")
                     with Image.open(image_path) as img:
                         if img.mode == 'RGBA':
-                            img = img.convert('RGB')
+                            image = img.convert('RGB').resize((384, 384), Image.LANCZOS)
+                        else:
+                            image = img.resize((384, 384), Image.LANCZOS)
                         pbar.update_absolute(step, image_count)
-                        image = img.resize((384, 384), Image.LANCZOS)
                         caption = self.generate_caption(joy_two_pipeline, image, prompt_str, top_p, temperature)
+                        if rename:
+                            new_filename = f"{prefix_name}_{start_index + finished_image_count}{os.path.splitext(filename)[1]}"
+                            new_image_path = os.path.join(output_dir, new_filename)
+                            shutil.copyfile(image_path, new_image_path)
+                            text_path = os.path.join(output_dir, os.path.splitext(new_filename)[0] + '.txt')
+
                         with open(text_path, 'w', encoding='utf-8') as f:
                             f.write(caption)
                     finished_image_count += 1

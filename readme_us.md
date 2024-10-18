@@ -1,6 +1,10 @@
 # JoyCaptionAlpha Two for ComfyUI
 English | [中文](./readme.md)
+
+Huge thanks to the original Joy Caption author, fpgaminer, whose work is available at: https://github.com/fpgaminer/joycaption. We deeply appreciate their contribution to open source!
+
 ## Recent changes
+* [2024-10-16] v0.0.7: Unified model loading precision, fixed the bug where the model could not be switched the second time, and added a rename switch to advanced batch captioning.
 * [2024-10-16] v0.0.6: Added `top_p` and `temperature` parameters to the advanced mode for greater control. Expanded the selection of large language models. I tested [John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4](https://huggingface.co/John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4) and found the results quite good; you can also try it out. Additionally, the original [Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2](https://huggingface.co/Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2) model has been added as an option.
 * [2024-10-15] v0.0.5: Fix the bug when processing images with an alpha channel (RGBA) in batch.
 * [2024-10-15] v0.0.4: Added batch processing nodes: When the output directory is empty, it will be saved in the image folder.  You can find the example workflow in the examples directory.
