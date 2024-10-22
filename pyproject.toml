@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_slk_joy_caption_two"
 description = "NODES:Joy Caption Two, Joy Caption Two Advanced, Joy Caption Two Load, Joy Caption Extra Options"
-version = "0.0.7"
+version = "0.0.8"
 license = {file = "LICENSE"}
 dependencies = ["huggingface_hub==0.23.4", "transformers>=4.44.0", "numpy", "sentencepiece", "pillow>=10.1.0", "bitsandbytes>=0.44.1", "peft==0.12.0"]
 

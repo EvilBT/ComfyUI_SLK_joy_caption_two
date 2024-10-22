@@ -4,6 +4,7 @@
 Joy Caption 原作者在这：https://github.com/fpgaminer/joycaption ，非常感谢他的开源！
 
 ## Recent changes
+* [2024-10-22] v0.0.8: 高级批量增加前缀字幕,后缀字幕，方便训练时批量添加触发词。
 * [2024-10-16] v0.0.7: 统一模型加载精度，修复模型第二次无法切换的BUG，高级批量字幕增加重命名开关。
 * [2024-10-16] v0.0.6: 高级模式增加top_p与temperature，给予更多的选择，添加更多的大模型选择，我试了一下 [John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4](https://huggingface.co/John6666/Llama-3.1-8B-Lexi-Uncensored-V2-nf4)
 效果不错，你们也可以尝试使用，另外也添加了原版的模型 [Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2](https://huggingface.co/Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2)，可以自行选择
@@ -36,7 +37,13 @@ git clone https://github.com/EvilBT/ComfyUI_SLK_joy_caption_two.git
 ```angular2html
 pip install -r ComfyUI_SLK_joy_caption_two\requirements.txt
 ```
+ 
+- 2.1 一定要确保相关依赖的版本都不小于requirements.txt的版本要求
+
 3. 下载相关模型。
+
+- 3.1 最好都是手动下载到指定目录，一定要注意路径要对得上，可以参考下面的截图
+
 4. 重启ComfyUI。
 
 ### 相关模型下载

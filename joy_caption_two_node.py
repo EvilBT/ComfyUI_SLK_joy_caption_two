@@ -796,6 +796,8 @@ class Batch_joy_caption_two_advanced:
                 "low_vram": ("BOOLEAN", {"default": False}),
                 "top_p": ("FLOAT", {"default": 0.9, "min": 0.0, "max": 1.0, "step": 0.01}),
                 "temperature": ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.01}),
+                "prefix_caption": ("STRING", {"default": ""}),
+                "suffix_caption": ("STRING", {"default": ""}),
             }
         }
 
@@ -891,7 +893,9 @@ class Batch_joy_caption_two_advanced:
 
         return caption.strip()
 
-    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, rename, prefix_name, start_index, extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature):
+    def generate(self, joy_two_pipeline: JoyTwoPipeline, input_dir, output_dir, rename, prefix_name, start_index,
+                 extra_options, caption_type, caption_length, name, custom_prompt, low_vram, top_p, temperature,
+                 prefix_caption, suffix_caption):
         torch.cuda.empty_cache()
 
         if joy_two_pipeline.clip_model == None:
@@ -959,6 +963,10 @@ class Batch_joy_caption_two_advanced:
                             image = img.resize((384, 384), Image.LANCZOS)
                         pbar.update_absolute(step, image_count)
                         caption = self.generate_caption(joy_two_pipeline, image, prompt_str, top_p, temperature)
+                        if prefix_caption:
+                            caption = f"{prefix_caption} {caption}"
+                        if suffix_caption:
+                            caption = f"{caption} {suffix_caption}"
                         if rename:
                             new_filename = f"{prefix_name}_{start_index + finished_image_count}{os.path.splitext(filename)[1]}"
                             new_image_path = os.path.join(output_dir, new_filename)
