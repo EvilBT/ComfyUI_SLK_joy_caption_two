@@ -241,8 +241,8 @@ class Joy_caption_two_load:
 
     def __init__(self):
         self.model = None
-        self.load_device = comfy.model_management.text_encoder_device()
-        self.offload_device = comfy.model_management.text_encoder_offload_device()
+        self.load_device = comfy.model_management.get_torch_device()
+        self.offload_device = comfy.model_management.unet_offload_device()
         self.pipeline = JoyTwoPipeline(self.load_device, self.offload_device)
         self.pipeline.parent = self
 
